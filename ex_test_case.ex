@@ -10,10 +10,10 @@ defmodule ExTestCase do
     end
   end
 
-  defmacro @({attr_name, _, [{fun, _, args}]}) do
+  defmacro @({attr_name = :data_provider, _, [{fun, _, args}]}) do
     Module.put_attribute(__CALLER__.module, attr_name, [{__CALLER__.module, fun, args}])
   end
-  defmacro @({attr_name, _, attr_value}) do
+  defmacro @({attr_name = :data_provider, _, attr_value}) do
     Module.put_attribute(__CALLER__.module, attr_name, attr_value)
   end
   defmacro @value do
@@ -30,7 +30,7 @@ defmodule ExTestCase do
       # Generate tests when data provider is a function in run-time
       {module, fun, args} = data_provider
       quote do
-        test "#{unquote(description)} - #{unquote(fun)}(#{unquote(args) |> Enum.join(", ")})" do
+        test "#{unquote(description)} - #{unquote(fun)}(#{unquote(args) |> Enum.map(&inspect/1) |> Enum.join(", ")})" do
           data_provider = apply(unquote(module), unquote(fun), unquote(args))
 
           for {[input_data_provider, expected_data_provider], index} <- Enum.with_index(data_provider) do
@@ -39,7 +39,6 @@ defmodule ExTestCase do
 
             try do
               unquote(block)
-              if index != 0, do: IO.ANSI.green() <> "." |> IO.write
             rescue
               e in ExUnit.AssertionError ->
                 e = %{e | message: "#{e.message}, with data set ##{index}"}
